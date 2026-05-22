@@ -1,2 +1,2 @@
-# wslog
+# wstlog
 Windows Screen Log
