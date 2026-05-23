@@ -1,5 +1,5 @@
 import time
-from src.window_tracker import window_name
+from src.tracker import window_name
 
 def main():
     while True:
