@@ -1,9 +1,11 @@
 import time
-from src.window_tracker import get_foreground_process
+from src.window_tracker import window_name
 
 def main():
-    print("Main application started. Monitoring activity...")
-    
+    while True:
+        window_name()
+        time.sleep(2)
+
 
 if __name__ == "__main__":
     main()

@@ -2,11 +2,11 @@
 import win32gui
 import win32process
 import psutil
+# import threading
 
-# Get the handle of the foreground window
-hwnd = win32gui.GetForegroundWindow()
-
-# Get the title text from the handle
-window_title = win32gui.GetWindowText(hwnd)
-
-print(f"Active Window Title: {window_title}")
+def window_name():
+    fgwcode = win32gui.GetForegroundWindow()
+    pid = win32process.GetWindowThreadProcessId(fgwcode)
+    app_name = psutil.Process(pid[1]).name()
+    print(app_name)
+    # threading.Timer(5.0, window_name).start()
