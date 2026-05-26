@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 import sys
 from pathlib import Path
 
@@ -15,18 +16,16 @@ def db_path():
     return(db_path)
 
 def db_initialize():
-    # connects to db
-    conn = sqlite3.connect(db_path())
-    cursor = conn.cursor()
-    #create scema
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            process_name TEXT NOT NULL,
-            started_at TEXT NOT NULL,
-            ended_at TEXT NOT NULL,
-            duration_s INTEGER NOT NULL
-        )
-    """)
-    conn.commit()
-    conn.close()
+    with closing(sqlite3.connect(db_path())) as conn:
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                process_name TEXT NOT NULL,
+                started_at TEXT NOT NULL,
+                ended_at TEXT NOT NULL,
+                duration_s INTEGER NOT NULL
+            )
+            """)
