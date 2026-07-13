@@ -82,21 +82,30 @@ fn main() -> Result<()> {
     }
     let icon = Icon::from_rgba(pixels, 32, 32).context("Failed to create tray icon from RGBA")?;
     
-    let _tray_icon = TrayIconBuilder::new()
+    let tray_result = TrayIconBuilder::new()
         .with_tooltip("ACTLog Time Tracker")
         .with_menu(Box::new(tray_menu))
         .with_icon(icon)
-        .build()
-        .context("Failed to build tray icon")?;
+        .build();
         
-    println!("Tray icon created. Press Quit to exit.");
+    let (_tray_icon, has_tray) = match tray_result {
+        Ok(ti) => {
+            println!("Tray icon created. Press Quit to exit.");
+            (Some(ti), true)
+        }
+        Err(e) => {
+            println!("Warning: Failed to create tray icon (headless environment?): {:?}", e);
+            println!("Running in headless daemon mode. Use Ctrl+C or kill the process to stop.");
+            (None, false)
+        }
+    };
     
     // 5. Spawn Threads
     let shutdown_flag = Arc::new(AtomicBool::new(false));
     
     // Spawn Server thread
     let server_shutdown = shutdown_flag.clone();
-    let server_thread = thread::spawn(move || {
+    let _server_thread = thread::spawn(move || {
         if let Err(e) = server::run_server(server_shutdown) {
             eprintln!("REST server thread error: {:?}", e);
         }
@@ -118,26 +127,33 @@ fn main() -> Result<()> {
         }
     });
     
-    // 6. Non-blocking Message Loop (PeekMessageW)
-    let quit_id = quit_item.id();
-    while !shutdown_flag.load(Ordering::Relaxed) {
-        let mut msg = MSG::default();
-        unsafe {
-            while PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE).as_bool() {
-                TranslateMessage(&msg);
-                DispatchMessageW(&msg);
+    // 6. Non-blocking Message Loop (PeekMessageW) / Headless Loop
+    if has_tray {
+        let quit_id = quit_item.id();
+        while !shutdown_flag.load(Ordering::Relaxed) {
+            let mut msg = MSG::default();
+            unsafe {
+                while PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE).as_bool() {
+                    let _ = TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
+                }
             }
-        }
-        
-        while let Ok(event) = MenuEvent::receiver().try_recv() {
-            if event.id == quit_id {
-                println!("Quit requested via tray menu.");
-                shutdown_flag.store(true, Ordering::SeqCst);
-                break;
+            
+            while let Ok(event) = MenuEvent::receiver().try_recv() {
+                if event.id == quit_id {
+                    println!("Quit requested via tray menu.");
+                    shutdown_flag.store(true, Ordering::SeqCst);
+                    break;
+                }
             }
+            
+            thread::sleep(Duration::from_millis(10));
         }
-        
-        thread::sleep(Duration::from_millis(10));
+    } else {
+        // Headless execution: sleep in loop until shutdown or Ctrl+C
+        while !shutdown_flag.load(Ordering::Relaxed) {
+            thread::sleep(Duration::from_millis(500));
+        }
     }
     
     // 7. Cleanup & Graceful Join

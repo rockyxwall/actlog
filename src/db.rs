@@ -1,5 +1,5 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use anyhow::{Result, Context};
 use rusqlite::{Connection, params};
 
@@ -14,7 +14,7 @@ pub fn init_db() -> Result<Connection> {
     let conn = Connection::open(db_path).context("Failed to open SQLite database")?;
     
     // Enable WAL mode
-    conn.execute("PRAGMA journal_mode=WAL;", [])
+    conn.pragma_update(None, "journal_mode", &"WAL")
         .context("Failed to set WAL journal mode")?;
         
     // Create tables
@@ -42,7 +42,7 @@ pub fn init_db() -> Result<Connection> {
 pub fn open_reader_conn() -> Result<Connection> {
     let db_path = get_app_dir()?.join("actlog.sqlite");
     let conn = Connection::open(db_path).context("Failed to open reader connection")?;
-    conn.execute("PRAGMA journal_mode=WAL;", [])
+    conn.pragma_update(None, "journal_mode", &"WAL")
         .context("Failed to set reader WAL journal mode")?;
     Ok(conn)
 }

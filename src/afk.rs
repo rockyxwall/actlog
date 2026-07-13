@@ -8,7 +8,7 @@ pub fn get_idle_seconds() -> u32 {
     };
 
     unsafe {
-        if GetLastInputInfo(&mut last_input_info).is_ok() {
+        if GetLastInputInfo(&mut last_input_info).as_bool() {
             let current_tick = GetTickCount();
             let idle_ms = current_tick.wrapping_sub(last_input_info.dwTime);
             return idle_ms / 1000;

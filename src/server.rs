@@ -4,7 +4,6 @@ use std::thread;
 use anyhow::{Result, Context};
 use tiny_http::{Server, Response, Header, Method};
 use serde::Serialize;
-use rusqlite::params;
 
 #[derive(Serialize)]
 struct Session {

@@ -124,7 +124,7 @@ pub fn run_tracker_loop(
                 };
                 unsafe {
                     let lparam = LPARAM(&mut state as *mut UwpResolverState as isize);
-                    let _ = EnumChildWindows(Some(hwnd), Some(enum_child_proc), lparam);
+                    let _ = EnumChildWindows(hwnd, Some(enum_child_proc), lparam);
                 }
                 
                 if let Some(child_pid) = state.child_pid {
