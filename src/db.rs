@@ -24,7 +24,7 @@ pub fn init_db() -> Result<Connection> {
     let conn = Connection::open(db_path).context("Failed to open SQLite database")?;
 
     // Enable WAL mode
-    conn.pragma_update(None, "journal_mode", &"WAL")
+    conn.pragma_update(None, "journal_mode", "WAL")
         .context("Failed to set WAL journal mode")?;
 
     // Create tables
@@ -54,7 +54,7 @@ pub fn init_db() -> Result<Connection> {
 pub fn open_reader_conn() -> Result<Connection> {
     let db_path = get_data_dir()?.join("actlog.sqlite");
     let conn = Connection::open(db_path).context("Failed to open reader connection")?;
-    conn.pragma_update(None, "journal_mode", &"WAL")
+    conn.pragma_update(None, "journal_mode", "WAL")
         .context("Failed to set reader WAL journal mode")?;
     Ok(conn)
 }

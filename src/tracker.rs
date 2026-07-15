@@ -129,10 +129,11 @@ pub fn run_tracker_loop(
                     let _ = EnumChildWindows(hwnd, Some(enum_child_proc), lparam);
                 }
 
-                if let Some(child_pid) = state.child_pid {
-                    if let Ok(child_name) = get_process_name(child_pid) {
-                        process_name = child_name;
-                    }
+                if let Some(child_name) = state
+                    .child_pid
+                    .and_then(|child_pid| get_process_name(child_pid).ok())
+                {
+                    process_name = child_name;
                 }
             }
 

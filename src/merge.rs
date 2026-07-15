@@ -35,8 +35,7 @@ pub fn record_session(
             if last_app == app
                 && last_title == title
                 && last_source == source
-                && gap >= 0
-                && gap <= 9000
+                && (0..=9000).contains(&gap)
             {
                 conn.execute(
                     "UPDATE sessions SET end_utc = ?1 WHERE id = ?2",
