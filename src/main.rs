@@ -1,8 +1,11 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod db;
 mod tracker;
 mod afk;
 mod merge;
 mod server;
+mod logging;
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -46,10 +49,13 @@ fn main() -> Result<()> {
     }
     let _mutex_guard = MutexGuard(mutex_handle);
     
+    // Initialize Logging (must be after single instance check to prevent file write lock contention/truncation)
+    logging::init_logging().context("Failed to initialize logging")?;
+    
     // 2. Initialize Database & Device ID
     let db_conn = db::init_db().context("Failed to initialize database")?;
     let device_id = db::get_or_create_device_id().context("Failed to get or create device ID")?;
-    println!("Initialized database. Device ID: {}", device_id);
+    log::info!("Initialized database. Device ID: {}", device_id);
     
     // 3. Startup Recovery (Crash Gap Check)
     db::perform_startup_recovery(&db_conn, &device_id)
@@ -90,12 +96,12 @@ fn main() -> Result<()> {
         
     let (_tray_icon, has_tray) = match tray_result {
         Ok(ti) => {
-            println!("Tray icon created. Press Quit to exit.");
+            log::info!("Tray icon created. Press Quit to exit.");
             (Some(ti), true)
         }
         Err(e) => {
-            println!("Warning: Failed to create tray icon (headless environment?): {:?}", e);
-            println!("Running in headless daemon mode. Use Ctrl+C or kill the process to stop.");
+            log::warn!("Warning: Failed to create tray icon (headless environment?): {:?}", e);
+            log::info!("Running in headless daemon mode. Use Ctrl+C or kill the process to stop.");
             (None, false)
         }
     };
@@ -107,7 +113,7 @@ fn main() -> Result<()> {
     let server_shutdown = shutdown_flag.clone();
     let _server_thread = thread::spawn(move || {
         if let Err(e) = server::run_server(server_shutdown) {
-            eprintln!("REST server thread error: {:?}", e);
+            log::error!("REST server thread error: {:?}", e);
         }
     });
     
@@ -118,11 +124,11 @@ fn main() -> Result<()> {
         match db::init_db() {
             Ok(tracker_conn) => {
                 if let Err(e) = tracker::run_tracker_loop(tracker_conn, tracker_device_id, tracker_shutdown) {
-                    eprintln!("Tracker thread error: {:?}", e);
+                    log::error!("Tracker thread error: {:?}", e);
                 }
             }
             Err(e) => {
-                eprintln!("Failed to initialize tracker DB connection: {:?}", e);
+                log::error!("Failed to initialize tracker DB connection: {:?}", e);
             }
         }
     });
@@ -141,7 +147,7 @@ fn main() -> Result<()> {
             
             while let Ok(event) = MenuEvent::receiver().try_recv() {
                 if event.id == quit_id {
-                    println!("Quit requested via tray menu.");
+                    log::info!("Quit requested via tray menu.");
                     shutdown_flag.store(true, Ordering::SeqCst);
                     break;
                 }
@@ -157,11 +163,11 @@ fn main() -> Result<()> {
     }
     
     // 7. Cleanup & Graceful Join
-    println!("Shutting down threads...");
+    log::info!("Shutting down threads...");
     let _ = tracker_thread.join();
     // Since tiny_http might be blocking on TcpListener, we can join with a short sleep or exit.
     // The main process returning will drop _tray_icon, _mutex_guard, and terminate the server thread immediately.
     
-    println!("ACTLog exited cleanly.");
+    log::info!("ACTLog exited cleanly.");
     Ok(())
 }

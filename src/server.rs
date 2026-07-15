@@ -92,14 +92,14 @@ pub fn run_server(shutdown: Arc<AtomicBool>) -> Result<()> {
     let server = Server::http("127.0.0.1:5566")
         .map_err(|e| anyhow::anyhow!("Failed to start tiny_http server: {}", e))?;
         
-    println!("REST API server listening on 127.0.0.1:5566");
+    log::info!("REST API server listening on 127.0.0.1:5566");
     
     while !shutdown.load(Ordering::Relaxed) {
         match server.try_recv() {
             Ok(Some(request)) => {
                 std::thread::spawn(move || {
                     if let Err(e) = handle_request(request) {
-                        eprintln!("Error handling request: {:?}", e);
+                        log::error!("Error handling request: {:?}", e);
                     }
                 });
             }
@@ -107,7 +107,7 @@ pub fn run_server(shutdown: Arc<AtomicBool>) -> Result<()> {
                 thread::sleep(Duration::from_millis(50));
             }
             Err(e) => {
-                eprintln!("Server receive error: {:?}", e);
+                log::error!("Server receive error: {:?}", e);
                 thread::sleep(Duration::from_millis(50));
             }
         }

@@ -3,14 +3,22 @@ use std::path::PathBuf;
 use anyhow::{Result, Context};
 use rusqlite::{Connection, params};
 
-pub fn get_app_dir() -> Result<PathBuf> {
+pub fn get_data_dir() -> Result<PathBuf> {
     let exe_path = env::current_exe().context("Failed to get current executable path")?;
-    let dir = exe_path.parent().context("Executable has no parent directory")?;
-    Ok(dir.to_path_buf())
+    let exe_dir = exe_path.parent().context("Executable has no parent directory")?;
+    let flag = exe_dir.join("portable.flag");
+    if flag.exists() {
+        Ok(exe_dir.to_path_buf())  // portable: data next to exe
+    } else {
+        let appdata = env::var("APPDATA").context("Failed to read APPDATA env var")?;
+        let dir = PathBuf::from(appdata).join("actlog");  // lowercase
+        std::fs::create_dir_all(&dir).context("Failed to create app data directory")?;
+        Ok(dir)  // installed: %APPDATA%/actlog/
+    }
 }
 
 pub fn init_db() -> Result<Connection> {
-    let db_path = get_app_dir()?.join("actlog.sqlite");
+    let db_path = get_data_dir()?.join("actlog.sqlite");
     let conn = Connection::open(db_path).context("Failed to open SQLite database")?;
     
     // Enable WAL mode
@@ -40,7 +48,7 @@ pub fn init_db() -> Result<Connection> {
 }
 
 pub fn open_reader_conn() -> Result<Connection> {
-    let db_path = get_app_dir()?.join("actlog.sqlite");
+    let db_path = get_data_dir()?.join("actlog.sqlite");
     let conn = Connection::open(db_path).context("Failed to open reader connection")?;
     conn.pragma_update(None, "journal_mode", &"WAL")
         .context("Failed to set reader WAL journal mode")?;
@@ -48,7 +56,7 @@ pub fn open_reader_conn() -> Result<Connection> {
 }
 
 pub fn get_or_create_device_id() -> Result<String> {
-    let file_path = get_app_dir()?.join("device_id.txt");
+    let file_path = get_data_dir()?.join("device_id.txt");
     if file_path.exists() {
         let content = std::fs::read_to_string(&file_path)
             .context("Failed to read device_id.txt")?;

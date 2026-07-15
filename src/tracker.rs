@@ -150,7 +150,7 @@ pub fn run_tracker_loop(
             .as_millis() as i64;
             
         if let Err(e) = merge::record_session(&conn, &device_id, &app, &title, &source, ts) {
-            eprintln!("Error recording session: {:?}", e);
+            log::error!("Error recording session: {:?}", e);
         }
         
         // Align to exactly 3-second intervals

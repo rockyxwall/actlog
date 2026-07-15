@@ -2,32 +2,6 @@
 
 Windows time tracker. Chrome extension is the PRIMARY UI. Tray app is background collector.
 
-## Rules
-
-### Do
-- `windows-rs` for Win32, `rusqlite bundled`, `tray-icon`+`muda`, `tiny_http`, `egui`/`eframe` (ui-bin only)
-- Sync crates (no tokio unless justified)
-- `anyhow`/`thiserror` — no unwrap/expect in production
-- `cargo clippy` + `cargo fmt` before every commit
-- REST API: GET endpoints only — extension is read-only
-- Resolve all file paths relative to `current_exe()` (portable) or `%APPDATA%` (installed), never CWD
-- Handle `GetForegroundWindow` NULL, access denied, and `ApplicationFrameHost.exe` wrapping
-- Use `VACUUM INTO` for DB backups, not `std::fs::copy`
-- Open separate SQLite connections for writer vs readers — no `Mutex<Connection>`
-- Use `chrome.alarms` API in extension background scripts (not `setInterval`)
-- Add `Access-Control-Allow-Origin` header to all server responses
-
-### Do Not
-- Full Tauri, WebSocket, registry writes, tokio for core/UI
-- Browser tab/URL data collection in the extension
-- POST/PUT endpoints for extension activity data
-- `unsafe` unless windows-rs requires it
-- Commit `.env`/credentials/binaries
-- Hardcode absolute paths
-- `std::fs::copy` a live WAL-mode SQLite database
-- Use `std::env::current_dir()` for storage paths
-- Add deps without checking Cargo.toml first
-
 ## Tech Stack
 - **Win32**: `windows-rs`
 - **DB**: `rusqlite` (bundled, WAL)
@@ -55,7 +29,6 @@ See `.agents/features.md#distribution` for full details.
 
 - **Portable**: All files alongside exe. Backups in `current_exe().parent()/backups/`.
 - **Installed**: Backups in `%APPDATA%/actlog/backups/`.
-- **Auto-start**: Start Menu shortcut via `mslnk`, not registry.
 - Always resolve paths via `current_exe()`, never CWD.
 
 ## Backup & Data
