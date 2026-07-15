@@ -1,5 +1,5 @@
-use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
 use windows::Win32::System::SystemInformation::GetTickCount;
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
 
 pub fn get_idle_seconds() -> u32 {
     let mut last_input_info = LASTINPUTINFO {
