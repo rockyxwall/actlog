@@ -24,15 +24,17 @@ struct UwpResolverState {
 }
 
 unsafe extern "system" fn enum_child_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
-    let state = &mut *(lparam.0 as *mut UwpResolverState);
-    let mut pid = 0u32;
-    GetWindowThreadProcessId(hwnd, Some(&mut pid));
-    
-    if pid != 0 && pid != state.parent_pid {
-        state.child_pid = Some(pid);
-        return FALSE; // Stop enumeration
+    unsafe {
+        let state = &mut *(lparam.0 as *mut UwpResolverState);
+        let mut pid = 0u32;
+        GetWindowThreadProcessId(hwnd, Some(&mut pid));
+        
+        if pid != 0 && pid != state.parent_pid {
+            state.child_pid = Some(pid);
+            return FALSE; // Stop enumeration
+        }
+        TRUE // Continue enumeration
     }
-    TRUE // Continue enumeration
 }
 
 fn get_process_name(pid: u32) -> Result<String> {
